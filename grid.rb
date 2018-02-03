@@ -1,46 +1,54 @@
 require 'json'
 require 'yaml'
 
-output = `kontena grid current`
+params = JSON.parse(STDIN.read)
+
+kontena_cli_prefix = if params["name"]
+  "KONTENA_MASTER=#{params["organization"]}/#{params["name"]}"
+end
+
+if params["name"]
+  org_master="#{params["organization"]}/#{params["name"]}"
+
+  masters = `kontena master ls -q`.split("\n")
+  unless masters.include? org_master
+    `kontena cloud platform use #{org_master}`
+  end
+end
+
+output = if params["name"]
+  `#{kontena_cli_prefix} kontena grid show #{params["name"]}`
+else
+  `kontena grid current`
+end
+
 grids = YAML.load(output)
 grid_name = grids.keys[0]
 grid = grids[grid_name]
 
-token = `kontena grid show --token #{grid_name}`
+token = `#{kontena_cli_prefix} kontena grid show --token #{grid_name}`
 
-trusted_subnet_output = `kontena grid trusted-subnet ls`
-trusted_subnets = trusted_subnet_output.split("\n")
+#NOTE: as of 1.3.4 -q does not exist
+trusted_subnets = `#{kontena_cli_prefix} kontena grid trusted-subnet ls -q`.split("\n")
+external_registries = `#{kontena_cli_prefix} kontena external-registry ls -q`.split("\n")
+nodes = `#{kontena_cli_prefix} kontena node ls -q`.split("\n")
+services = `#{kontena_cli_prefix} kontena service ls -q`.split("\n")
+stacks = `#{kontena_cli_prefix} kontena stack ls -q`.split("\n")
+containers = `#{kontena_cli_prefix} kontena container ls -q`.split("\n")
+volumes = `#{kontena_cli_prefix} kontena volume ls -q`.split("\n")
 
-external_registries_output = `kontena external-registry ls -q`
-external_registries = external_registries_output.split("\n")
+stats_mem_used = grid["stats"]&.dig("memory")&.split(" of ")&.at(0)
+stats_mem_total = grid["stats"]&.dig("memory")&.split(" of ")&.at(1)&.split(" GB")&.at(0)
 
-node_ls_output = `kontena node ls -q`
-nodes = node_ls_output.split("\n")
-
-service_ls_output = `kontena service ls -q`
-services = service_ls_output.split("\n")
-
-stack_ls_output = `kontena stack ls -q`
-stacks = stack_ls_output.split("\n")
-
-container_ls_output = `kontena container ls -q`
-containers = container_ls_output.split("\n")
-
-volume_ls_output = `kontena volume ls -q`
-volumes = volume_ls_output.split("\n")
-
-stats_mem_used = grid["stats"]["memory"].split(" of ")&.at(0)
-stats_mem_total = grid["stats"]["memory"].split(" of ")&.at(1)&.split(" GB")&.at(0)
-
-stats_fs_used = grid["stats"]["filesystem"].split(" of ")&.at(0)
-stats_fs_total = grid["stats"]["filesystem"].split(" of ")&.at(0)&.split(" GB")&.at(0)
+stats_fs_used = grid["stats"]&.dig("filesystem")&.split(" of ")&.at(0)
+stats_fs_total = grid["stats"]&.dig("filesystem")&.split(" of ")&.at(0)&.split(" GB")&.at(0)
 
 result = {
   name: grid_name,
   token: token.strip,
   uri: grid["uri"],
   initial_size: grid["initial_size"].to_s,
-  default_affinity: grid["default_affinity"].join(","),
+  default_affinity: grid["default_affinity"]&.join(","),
   subnet: grid["subnet"],
   supernet: grid["supernet"],
   trusted_subnets: trusted_subnets.join(","),

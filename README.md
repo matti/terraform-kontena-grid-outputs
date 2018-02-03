@@ -55,3 +55,12 @@ Option 3: use kontena config file masters
 
     $ cd test
     $ KONTENA_MASTER=myorg/mygrid KONTENA_GRID=mygrid
+
+Option 4: define master & grid as inputs
+
+    module "grid-outputs" {
+      source  = "matti/grid-outputs/kontena"
+
+      organization = "${var.organization}"
+      name         = "${var.name}"
+    }
