@@ -5,7 +5,7 @@ Provides outputs for a grid (lightweight data source).
 Selects grid with environment variables https://kontena.io/docs/references/environment-variables.html
 Requires Ruby and `kontena` CLI.
 
-See (test)[test] folder for usage example.
+See [test](test) folder for usage example.
 
 Option 1: use current master and grid
 
