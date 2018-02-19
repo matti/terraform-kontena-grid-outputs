@@ -16,12 +16,18 @@ end
 # https://github.com/kontena/kontena/issues/3239
 if params["organization"]
   `kontena cloud platform show #{master_name}`
-  exit 1 unless $?.success?
+  platform_found = $?.success?
+
+  unless platform_found
+    exit 1
+  end
 
   while true do
     masters = `kontena master ls -q`.split("\n")
     unless masters.include? master_name
       `kontena cloud platform use #{master_name}`
+    else
+      break
     end
 
     sleep (rand * 3).floor
