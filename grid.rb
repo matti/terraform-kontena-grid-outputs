@@ -3,16 +3,28 @@ require 'yaml'
 
 params = JSON.parse(STDIN.read)
 
-kontena_cli_prefix = if params["name"]
-  "KONTENA_MASTER=#{params["organization"]}/#{params["name"]}"
+master_name = if params["organization"]
+  "#{params["organization"]}/#{params["name"]}"
+elsif params["name"]
+  params["name"]
 end
 
-if params["name"]
-  org_master="#{params["organization"]}/#{params["name"]}"
+kontena_cli_prefix = if master_name
+  "KONTENA_MASTER=#{master_name}"
+end
 
-  masters = `kontena master ls -q`.split("\n")
-  unless masters.include? org_master
-    `kontena cloud platform use #{org_master}`
+# https://github.com/kontena/kontena/issues/3239
+if params["organization"]
+  `kontena cloud platform show #{master_name}`
+  exit 1 unless $?.success?
+
+  while true do
+    masters = `kontena master ls -q`.split("\n")
+    unless masters.include? master_name
+      `kontena cloud platform use #{master_name}`
+    end
+
+    sleep (rand * 3).floor
   end
 end
 
